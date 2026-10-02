@@ -83,7 +83,7 @@ app.get("/api/estados", (req, res) => {
 app.post("/api/gestores/login", (req, res) => {
   var usuario = req.body.usuario;
   var contraseña = req.body.contraseña;
-
+  console.log(usuario,contraseña);
   conexion
     .from("gestores")
     .select("id")
