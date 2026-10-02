@@ -1,18 +1,15 @@
-const mysql = require('mysql');
-const database = {
-    host : 'localhost',
-    user : 'tele2026',
-    password : '2026tele',
-    database : 'datos'
-};
+const { createClient } = require('@supabase/supabase-js');
 
-const conexion = mysql.createConnection(database);
+// Configuración con las credenciales de tu proyecto en Supabase
+const SUPABASE_URL = 'https://oyqblmkldzazdxeibknq.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = 'sb_secret_craI9cr_ga2EVMVX9lLo-A_hdQVoA1Z'; // O la clave ANON/Service Role correspondiente
 
-conexion.connect(function (err) {
-    if (err) {
-        console.error('Error en la conexión de la base de datos:',err);
-        process.exit();
-    }
-});
+// Validación previa del formato de la URL
+if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
+  console.error('Error: SUPABASE_URL no es válida o está vacía:', SUPABASE_URL);
+  process.exit(1);
+}
+
+const conexion = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 module.exports = conexion;
