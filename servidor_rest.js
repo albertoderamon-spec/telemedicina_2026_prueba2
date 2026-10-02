@@ -1,343 +1,556 @@
-var express = require("express");
-var app = express();
+const express = require("express");
+const app = express();
 
-var conexion = require("./bd/conexion_mysql.js");
+const conexion = require("./bd/conexion_mysql.js"); // Exporta la instancia del cliente supabase
 
 app.use("/appCliente", express.static("cliente_rest"));
 app.use(express.json());
 
+// GET /api/ubicaciones
 app.get("/api/ubicaciones", (req, res) => {
-  conexion.query("SELECT * FROM ubicaciones", function (err, ubicaciones) {
-    if (err) {
-      console.log("Error al realizar la select", err);
+  conexion
+    .from("ubicaciones")
+    .select("*")
+    .then(({ data, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(data);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
       res.status(500).json("Error al realizar la consulta");
-    } else {
-      res.status(200).json(ubicaciones);
-    }
-  });
+    });
 });
 
+// GET /api/categorias
 app.get("/api/categorias", (req, res) => {
-  conexion.query("SELECT * FROM categorias", function (err, categorias) {
-    if (err) {
-      console.log("Error al realizar la select", err);
+  conexion
+    .from("categorias")
+    .select("*")
+    .then(({ data, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(data);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
       res.status(500).json("Error al realizar la consulta");
-    } else {
-      res.status(200).json(categorias);
-    }
-  });
+    });
 });
 
+// GET /api/modelos
 app.get("/api/modelos", (req, res) => {
-  conexion.query("SELECT * FROM modelos", function (err, modelos) {
-    if (err) {
-      console.log("Error al realizar la select", err);
+  conexion
+    .from("modelos")
+    .select("*")
+    .then(({ data, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(data);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
       res.status(500).json("Error al realizar la consulta");
-    } else {
-      res.status(200).json(modelos);
-    }
-  });
+    });
 });
 
+// GET /api/estados
 app.get("/api/estados", (req, res) => {
-  conexion.query("SELECT * FROM estado ORDER BY id", function (err, estados) {
-    if (err) {
-      console.log("Error al realizar la select", err);
+  conexion
+    .from("estado")
+    .select("*")
+    .order("id", { ascending: true })
+    .then(({ data, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(data);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
       res.status(500).json("Error al realizar la consulta");
-    } else {
-      res.status(200).json(estados);
-    }
-  });
+    });
 });
 
+// POST /api/gestores/login
 app.post("/api/gestores/login", (req, res) => {
   var usuario = req.body.usuario;
   var contraseña = req.body.contraseña;
 
-  var sql = "SELECT id FROM gestores WHERE usuario = ? AND contrasena = ?";
-  conexion.query(sql, [usuario, contraseña], function (err, gestores) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (gestores.length === 1) {
-      res.status(200).json(gestores[0].id);
-    } else {
-      res.status(403).json("Credenciales incorrectas.");
-    }
-  });
-});
-
-app.post("/api/area_salud", function (req,res){
-  var sql = "INSERT INTO area_salud (codigo_postal, nombre, gestor) VALUES (?,?,?)";
-  var valores = [req.body.codigo_postal, req.body.nombre, req.body.gestor];
-
-  conexion.query(sql, valores, function (err, area) {
-    if (err) {
-      console.log("Error al realizar el insert", err);
-      res.status(500).json("Error al realizar la insercion");
-    } else {
-      res.status(201).json(area);
-    }
-  });
-});
-
-
-app.post("/api/gestores", function (req, res) {
-  var sql = "INSERT INTO gestores (nombre, apellidos, usuario, contrasena) VALUES (?, ?, ?, ?)";
-  var valores = [req.body.nombre, req.body.apellidos, req.body.usuario, req.body.contraseña];
-
-  // La tabla no tiene UNIQUE en usuario: se comprueba aqui que el login no exista
-  conexion.query("SELECT id FROM gestores WHERE usuario = ?", [req.body.usuario], function (err, duplicados) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (duplicados.length > 0) {
-      return res.status(409).json("El login ya existe");
-    }
-
-    conexion.query(sql, valores, function (err, resultado) {
-      if (err) {
-        console.log("Error al realizar el insert", err);
-        res.status(500).json("Error al realizar la insercion");
-      } else {
-        res.status(201).json("Gestor añadido correctamente a la base de datos.");
-      }
-    });
-  });
-});
-
-app.put("/api/gestores/:id", function (req, res) {
-  var idGestor = parseInt(req.params.id);
-  var gestor = {
-    nombre: req.body.nombre,
-    apellidos: req.body.apellidos,
-    usuario: req.body.usuario,
-    contraseña: req.body.contraseña
-  };
-
-  conexion.query("SELECT id FROM gestores WHERE id = ?", [idGestor], function (err, encontrados) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (encontrados.length === 0) {
-      return res.status(404).json("El usuario que está intentando modificar no se encuentra en la base de datos");
-    }
-
-    var sqlDuplicado = "SELECT id FROM gestores WHERE usuario = ? AND id != ?";
-    conexion.query(sqlDuplicado, [gestor.usuario, idGestor], function (err, duplicados) {
-      if (err) {
-        console.log("Error al realizar la select", err);
+  conexion
+    .from("gestores")
+    .select("id")
+    .eq("usuario", usuario)
+    .eq("contrasena", contraseña)
+    .then(({ data: gestores, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
         return res.status(500).json("Error al realizar la consulta");
       }
-      if (duplicados.length > 0) {
-        return res.status(404).json("El login ya existe");
+      if (gestores && gestores.length === 1) {
+        res.status(200).json(gestores[0].id);
+      } else {
+        res.status(403).json("Credenciales incorrectas.");
+      }
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
+});
+
+// POST /api/area_salud
+app.post("/api/area_salud", (req, res) => {
+  var codigo_postal = req.body.codigo_postal;
+  var nombre = req.body.nombre;
+  var gestor = req.body.gestor;
+
+  conexion
+    .from("area_salud")
+    .insert([{ codigo_postal, nombre, gestor }])
+    .select()
+    .then(({ data, error }) => {
+      if (error) {
+        console.log("Error al realizar el insert", error);
+        return res.status(500).json("Error al realizar la insercion");
+      }
+      res.status(201).json(data);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la insercion");
+    });
+});
+
+// POST /api/gestores
+app.post("/api/gestores", (req, res) => {
+  var nombre = req.body.nombre;
+  var apellidos = req.body.apellidos;
+  var usuario = req.body.usuario;
+  var contraseña = req.body.contraseña;
+
+  conexion
+    .from("gestores")
+    .select("id")
+    .eq("usuario", usuario)
+    .then(({ data: duplicados, error: errDup }) => {
+      if (errDup) {
+        console.log("Error al realizar la select", errDup);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      if (duplicados && duplicados.length > 0) {
+        return res.status(409).json("El login ya existe");
       }
 
-      var sqlUpdate = "UPDATE gestores SET nombre = ?, apellidos = ?, usuario = ?, contrasena = ? WHERE id = ?";
-      var valores = [gestor.nombre, gestor.apellidos, gestor.usuario, gestor.contraseña, idGestor];
-      conexion.query(sqlUpdate, valores, function (err) {
-        if (err) {
-          console.log("Error al realizar el update", err);
-          return res.status(500).json("Error al realizar la actualización");
-        }
-        res.status(201).json("Se han actualizado correctamente los datos.");
-      });
+      return conexion
+        .from("gestores")
+        .insert([{ nombre, apellidos, usuario, contrasena: contraseña }]);
+    })
+    .then((resultado) => {
+      if (!resultado) return; // Si devolvió un error previo, no hacemos nada
+      
+      var error = resultado.error;
+      if (error) {
+        console.log("Error al realizar el insert", error);
+        return res.status(500).json("Error al realizar la insercion");
+      }
+
+      res.status(201).json("Gestor añadido correctamente a la base de datos.");
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error interno");
     });
-  });
 });
 
-app.get("/api/gestores/:id", function (req, res) {
+// PUT /api/gestores/:id
+app.put("/api/gestores/:id", (req, res) => {
   var idGestor = parseInt(req.params.id);
-  var sql = "SELECT id, nombre, apellidos, usuario FROM gestores WHERE id = ?";
+  var nombre = req.body.nombre;
+  var apellidos = req.body.apellidos;
+  var usuario = req.body.usuario;
+  var contraseña = req.body.contraseña;
 
-  conexion.query(sql, [idGestor], function (err, gestores) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (gestores.length === 0) {
-      return res.status(404).json("Gestor no encontrado.");
-    }
-    res.status(200).json(gestores[0]);
-  });
+  conexion
+    .from("gestores")
+    .select("id")
+    .eq("id", idGestor)
+    .then(({ data: encontrados, error: errEnc }) => {
+      if (errEnc) {
+        console.log("Error al realizar la select", errEnc);
+        res.status(500).json("Error al realizar la consulta");
+        return null;
+      }
+      if (!encontrados || encontrados.length === 0) {
+        res.status(404).json("El usuario que está intentando modificar no se encuentra en la base de datos");
+        return null;
+      }
+
+      return conexion
+        .from("gestores")
+        .select("id")
+        .eq("usuario", usuario)
+        .neq("id", idGestor);
+    })
+    .then((resDup) => {
+      if (!resDup) return null;
+
+      var duplicados = resDup.data;
+      var errDup = resDup.error;
+
+      if (errDup) {
+        console.log("Error al realizar la select", errDup);
+        res.status(500).json("Error al realizar la consulta");
+        return null;
+      }
+
+      if (duplicados && duplicados.length > 0) {
+        res.status(404).json("El login ya existe");
+        return null;
+      }
+
+      return conexion
+        .from("gestores")
+        .update({ nombre, apellidos, usuario, contrasena: contraseña })
+        .eq("id", idGestor);
+    })
+    .then((resUpdate) => {
+      if (!resUpdate) return;
+
+      var errUpdate = resUpdate.error;
+      if (errUpdate) {
+        console.log("Error al realizar el update", errUpdate);
+        return res.status(500).json("Error al realizar la actualización");
+      }
+
+      res.status(201).json("Se han actualizado correctamente los datos.");
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error interno");
+    });
 });
 
-app.get("/api/sanitarios/:id", function (req, res) {
+// GET /api/gestores/:id
+app.get("/api/gestores/:id", (req, res) => {
+  var idGestor = parseInt(req.params.id);
+
+  conexion
+    .from("gestores")
+    .select("id, nombre, apellidos, usuario")
+    .eq("id", idGestor)
+    .then(({ data: gestores, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      if (!gestores || gestores.length === 0) {
+        return res.status(404).json("Gestor no encontrado.");
+      }
+      res.status(200).json(gestores[0]);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
+});
+
+// GET /api/sanitarios/:id
+app.get("/api/sanitarios/:id", (req, res) => {
   var idSanitario = parseInt(req.params.id);
-  var sql = "SELECT id, nombre, apellidos, usuario FROM sanitarios WHERE id = ?";
 
-  conexion.query(sql, [idSanitario], function (err, sanitarios) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (sanitarios.length === 0) {
-      return res.status(404).json("Sanitario no encontrado.");
-    }
-    res.status(200).json(sanitarios[0]);
-  });
+  conexion
+    .from("sanitarios")
+    .select("id, nombre, apellidos, usuario")
+    .eq("id", idSanitario)
+    .then(({ data: sanitarios, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      if (!sanitarios || sanitarios.length === 0) {
+        return res.status(404).json("Sanitario no encontrado.");
+      }
+      res.status(200).json(sanitarios[0]);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
 });
 
-app.get("/api/recursos", function (req, res) {
+// GET /api/recursos
+app.get("/api/recursos", (req, res) => {
   var categoria = req.query.categoria;
   var modelo = req.query.modelo;
   var ubicacion = req.query.ubicacion;
   var estadoFiltro = req.query.estado;
 
-  var sql = "SELECT * FROM recursos WHERE 1 = 1";
-  var valores = [];
+  var query = conexion.from("recursos").select("*");
 
-  if (categoria) {
-    sql += " AND categoria = ?";
-    valores.push(categoria);
-  }
-  if (modelo) {
-    sql += " AND modelo = ?";
-    valores.push(modelo);
-  }
-  if (ubicacion) {
-    sql += " AND ubicacion = ?";
-    valores.push(ubicacion);
-  }
+  if (categoria) query = query.eq("categoria", categoria);
+  if (modelo) query = query.eq("modelo", modelo);
+  if (ubicacion) query = query.eq("ubicacion", ubicacion);
   if (estadoFiltro !== undefined && estadoFiltro !== "" && estadoFiltro !== "-1") {
-    sql += " AND estado = ?";
-    valores.push(estadoFiltro);
+    query = query.eq("estado", estadoFiltro);
   }
 
-  conexion.query(sql, valores, function (err, recursos) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    res.status(200).json(recursos);
-  });
-});
-
-app.get("/api/recursos/:id", function (req, res) {
-  var idBusqueda = parseInt(req.params.id);
-  var sql = "SELECT * FROM recursos WHERE numero_serie = ? OR id = ?";
-
-  conexion.query(sql, [idBusqueda, idBusqueda], function (err, recursos) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (recursos.length === 0) {
-      return res.status(404).json("Recurso no encontrado.");
-    }
-    res.status(200).json(recursos[0]);
-  });
-});
-
-app.post("/api/recursos", function (req, res) {
-  // La categoria se toma del modelo elegido (modelos.categoria)
-  var sql = "INSERT INTO recursos (categoria, modelo, ubicacion, numero_serie, estado) " +
-    "VALUES ((SELECT categoria FROM modelos WHERE id = ?), ?, ?, ?, ?)";
-  var numSerie = parseInt(req.body.numero_serie);
-  var valores = [req.body.modelo, req.body.modelo, req.body.ubicacion, numSerie, req.body.estado];
-
-  // La tabla no tiene UNIQUE en numero_serie: se comprueba aqui que no exista
-  conexion.query("SELECT id FROM recursos WHERE numero_serie = ?", [numSerie], function (err, duplicados) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (duplicados.length > 0) {
-      return res.status(409).json("Ya existe un recurso con ese número de serie");
-    }
-
-    conexion.query(sql, valores, function (err, resultado) {
-      if (err) {
-        console.log("Error al realizar el insert", err);
-        res.status(500).json("Error al realizar la insercion");
-      } else {
-        res.status(201).json("Recurso añadido correctamente a la base de datos.");
+  query
+    .then(({ data: recursos, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
       }
+      res.status(200).json(recursos);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
     });
-  });
 });
 
-app.put("/api/recursos/:id", function (req, res) {
+// GET /api/recursos/:id
+app.get("/api/recursos/:id", (req, res) => {
+  var idBusqueda = parseInt(req.params.id);
+
+  conexion
+    .from("recursos")
+    .select("*")
+    .or(`numero_serie.eq.${idBusqueda},id.eq.${idBusqueda}`)
+    .then(({ data: recursos, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      if (!recursos || recursos.length === 0) {
+        return res.status(404).json("Recurso no encontrado.");
+      }
+      res.status(200).json(recursos[0]);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
+});
+
+// POST /api/recursos
+app.post("/api/recursos", (req, res) => {
+  var numSerie = parseInt(req.body.numero_serie);
+  var modelo = req.body.modelo;
+  var ubicacion = req.body.ubicacion;
+  var estado = req.body.estado;
+
+  conexion
+    .from("recursos")
+    .select("id")
+    .eq("numero_serie", numSerie)
+    .then(({ data: duplicados, error: errDup }) => {
+      if (errDup) {
+        console.log("Error al realizar la select", errDup);
+        res.status(500).json("Error al realizar la consulta");
+        return null;
+      }
+      if (duplicados && duplicados.length > 0) {
+        res.status(409).json("Ya existe un recurso con ese número de serie");
+        return null;
+      }
+
+      return conexion
+        .from("modelos")
+        .select("categoria")
+        .eq("id", modelo)
+        .single();
+    })
+    .then((resModelo) => {
+      if (!resModelo) return null;
+
+      var datosModelo = resModelo.data;
+      var errModelo = resModelo.error;
+
+      if (errModelo || !datosModelo) {
+        console.log("Error al obtener la categoría del modelo", errModelo);
+        res.status(500).json("Error al asociar la categoría del modelo");
+        return null;
+      }
+
+      return conexion
+        .from("recursos")
+        .insert([{
+          categoria: datosModelo.categoria,
+          modelo: modelo,
+          ubicacion: ubicacion,
+          numero_serie: numSerie,
+          estado: estado
+        }]);
+    })
+    .then((resInsert) => {
+      if (!resInsert) return;
+
+      var errInsert = resInsert.error;
+      if (errInsert) {
+        console.log("Error al realizar el insert", errInsert);
+        return res.status(500).json("Error al realizar la insercion");
+      }
+
+      res.status(201).json("Recurso añadido correctamente a la base de datos.");
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error interno");
+    });
+});
+
+// PUT /api/recursos/:id
+app.put("/api/recursos/:id", (req, res) => {
   var numSerie = parseInt(req.params.id);
-  // Si cambia el modelo, la categoria se actualiza con la de ese modelo
-  var sql = "UPDATE recursos SET categoria = (SELECT categoria FROM modelos WHERE id = ?), " +
-    "modelo = ?, ubicacion = ?, estado = ? WHERE numero_serie = ?";
-  var valores = [req.body.modelo, req.body.modelo, req.body.ubicacion, req.body.estado, numSerie];
+  var modelo = req.body.modelo;
+  var ubicacion = req.body.ubicacion;
+  var estado = req.body.estado;
 
-  conexion.query(sql, valores, function (err, resultado) {
-    if (err) {
-      console.log("Error al realizar el update", err);
-      return res.status(500).json("Error al realizar la actualización");
-    }
-    if (resultado.affectedRows > 0) {
-      res.status(200).json("El recurso se ha actualizado en la base de datos.");
-    } else {
-      res.status(404).json("Error actualizando el recurso.");
-    }
-  });
+  conexion
+    .from("modelos")
+    .select("categoria")
+    .eq("id", modelo)
+    .single()
+    .then(({ data: datosModelo, error: errModelo }) => {
+      if (errModelo || !datosModelo) {
+        console.log("Error al obtener la categoría del modelo", errModelo);
+        res.status(500).json("Error al actualizar la categoría del modelo");
+        return null;
+      }
+
+      return conexion
+        .from("recursos")
+        .update({
+          categoria: datosModelo.categoria,
+          modelo: modelo,
+          ubicacion: ubicacion,
+          estado: estado
+        })
+        .eq("numero_serie", numSerie)
+        .select();
+    })
+    .then((resUpdate) => {
+      if (!resUpdate) return;
+
+      var data = resUpdate.data;
+      var error = resUpdate.error;
+
+      if (error) {
+        console.log("Error al realizar el update", error);
+        return res.status(500).json("Error al realizar la actualización");
+      }
+
+      if (data && data.length > 0) {
+        res.status(200).json("El recurso se ha actualizado en la base de datos.");
+      } else {
+        res.status(404).json("Error actualizando el recurso.");
+      }
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error interno");
+    });
 });
 
-app.get("/api/recursos/:id/reservas", function (req, res) {
+// GET /api/recursos/:id/reservas
+app.get("/api/recursos/:id/reservas", (req, res) => {
   var idRecurso = parseInt(req.params.id);
-  conexion.query("SELECT * FROM reservas WHERE recurso = ?", [idRecurso], function (err, reservas) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    res.status(200).json(reservas);
-  });
+
+  conexion
+    .from("reservas")
+    .select("*")
+    .eq("recurso", idRecurso)
+    .then(({ data: reservas, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(reservas);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
 });
 
-app.get("/api/recursos/:id/resenyas", function (req, res) {
+// GET /api/recursos/:id/resenyas
+app.get("/api/recursos/:id/resenyas", (req, res) => {
   var idRecurso = parseInt(req.params.id);
-  conexion.query("SELECT * FROM resenyas WHERE recurso = ?", [idRecurso], function (err, resenyas) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    res.status(200).json(resenyas);
-  });
+
+  conexion
+    .from("resenyas")
+    .select("*")
+    .eq("recurso", idRecurso)
+    .then(({ data: resenyas, error }) => {
+      if (error) {
+        console.log("Error al realizar la select", error);
+        return res.status(500).json("Error al realizar la consulta");
+      }
+      res.status(200).json(resenyas);
+    })
+    .catch((err) => {
+      console.log("Error en el servidor", err);
+      res.status(500).json("Error al realizar la consulta");
+    });
 });
 
-app.delete("/api/recursos/:id", function (req, res) {
+// DELETE /api/recursos/:id
+app.delete("/api/recursos/:id", (req, res) => {
   var idRecursoOSerie = parseInt(req.params.id);
 
-  conexion.query("SELECT id FROM recursos WHERE numero_serie = ? OR id = ?", [idRecursoOSerie, idRecursoOSerie], function (err, recursos) {
-    if (err) {
-      console.log("Error al realizar la select", err);
-      return res.status(500).json("Error al realizar la consulta");
-    }
-    if (recursos.length === 0) {
-      return res.status(404).json("No se ha encontrado el recurso para eliminar.");
-    }
-    var ids = recursos.map(function (r) { return r.id; });
+  conexion
+    .from("recursos")
+    .select("id")
+    .or(`numero_serie.eq.${idRecursoOSerie},id.eq.${idRecursoOSerie}`)
+    .then(({ data: recursos, error: errSel }) => {
+      if (errSel) {
+        console.log("Error al realizar la select", errSel);
+        res.status(500).json("Error al realizar la consulta");
+        return null;
+      }
 
-    // Por las claves foraneas, primero se borran las resenyas y reservas del recurso
-    conexion.query("DELETE FROM resenyas WHERE recurso IN (?)", [ids], function (err) {
-      if (err) {
-        console.log("Error al realizar el delete", err);
+      if (!recursos || recursos.length === 0) {
+        res.status(404).json("No se ha encontrado el recurso para eliminar.");
+        return null;
+      }
+
+      var ids = recursos.map((r) => r.id);
+
+      // Borrar resenyas
+      return conexion.from("resenyas").delete().in("recurso", ids).then((resResenyas) => {
+        if (resResenyas.error) throw resResenyas.error;
+        // Borrar reservas
+        return conexion.from("reservas").delete().in("recurso", ids);
+      }).then((resReservas) => {
+        if (resReservas.error) throw resReservas.error;
+        // Borrar recursos
+        return conexion.from("recursos").delete().in("id", ids);
+      });
+    })
+    .then((resFinal) => {
+      if (!resFinal) return;
+
+      if (resFinal.error) {
+        console.log("Error al realizar el borrado", resFinal.error);
         return res.status(500).json("Error al realizar el borrado");
       }
-      conexion.query("DELETE FROM reservas WHERE recurso IN (?)", [ids], function (err) {
-        if (err) {
-          console.log("Error al realizar el delete", err);
-          return res.status(500).json("Error al realizar el borrado");
-        }
-        conexion.query("DELETE FROM recursos WHERE id IN (?)", [ids], function (err) {
-          if (err) {
-            console.log("Error al realizar el delete", err);
-            return res.status(500).json("Error al realizar el borrado");
-          }
-          res.status(200).json("Recurso eliminado correctamente.");
-        });
-      });
+
+      res.status(200).json("Recurso eliminado correctamente.");
+    })
+    .catch((err) => {
+      console.log("Error en el servidor durante el borrado", err);
+      res.status(500).json("Error al realizar el borrado");
     });
-  });
 });
 
 app.listen(3000, () => {
-  console.log('Servidor en http://localhost:3000');
+  console.log("Servidor en http://localhost:3000");
 });
